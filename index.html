@@ -1861,8 +1861,11 @@ body {
 
     saveBatchDays();
 
-    // Notificación visual temporal sin borrar datos
-    saveIndicator.textContent = `✅ ¡Día ${dateVal} guardado en el lote! (${batchDays.length} acum.)`;
+    // Limpiar automáticamente el formulario para el siguiente día manteniendo el solicitante
+    resetFormForNewDay(true);
+
+    // Notificación visual de éxito
+    saveIndicator.textContent = `✅ ¡Día ${dateVal} guardado en el lote! Formulario listo para el siguiente día (${batchDays.length} acum.)`;
     setTimeout(() => {
       saveIndicator.textContent = '💾 Guardado automático';
     }, 4000);
@@ -1947,6 +1950,7 @@ body {
     };
     saveVoucherData();
     initForm();
+    recalculateTotals();
     closeBatchModal();
     saveIndicator.textContent = `📋 Día ${day.date} cargado en el formulario`;
   }
@@ -2315,28 +2319,40 @@ body {
     window.print();
   });
 
+  // Limpiar/Reiniciar Formulario para un nuevo día
+  function resetFormForNewDay(keepRequester = true) {
+    const today = new Date();
+    const currentRequester = keepRequester 
+      ? (requesterName && requesterName.value.trim() ? requesterName.value.trim() : (voucherData.requesterName || localStorage.getItem('homeline_last_requester') || ''))
+      : '';
+    
+    voucherData = {
+      requesterName: currentRequester,
+      date: today.toISOString().split('T')[0],
+      clientName: '',
+      clientType: 'nuevo',
+      visitReason: 'Visita Técnica',
+      notes: '',
+      tripsIda: [
+        { mobility: 'Taxi', origin: 'Oficina Home Line', destination: '', amount: '' }
+      ],
+      tripsRegreso: [
+        { mobility: 'Taxi', origin: '', destination: 'Oficina Home Line', amount: '' }
+      ]
+    };
+
+    saveVoucherData();
+    initForm();
+    recalculateTotals();
+  }
+
   // Limpiar Formulario para una nueva boleta (Sin borrar el lote)
   btnClearVoucher.addEventListener('click', () => {
-    if (confirm('¿Deseas limpiar el formulario para ingresar un nuevo día? Los días guardados en el lote se mantendrán intactos.')) {
-      const currentRequester = requesterName ? requesterName.value : (voucherData.requesterName || localStorage.getItem('homeline_last_requester') || '');
-      voucherData = {
-        requesterName: currentRequester,
-        date: today.toISOString().split('T')[0],
-        clientName: '',
-        clientType: 'nuevo',
-        visitReason: 'Visita Técnica',
-        notes: '',
-        tripsIda: [
-          { mobility: 'Taxi', origin: 'Oficina Home Line', destination: '', amount: '' }
-        ],
-        tripsRegreso: [
-          { mobility: 'Taxi', origin: '', destination: 'Oficina Home Line', amount: '' }
-        ]
-      };
-      saveVoucherData();
-      initForm();
-      saveIndicator.textContent = '🧹 Formulario listo para un nuevo día';
-    }
+    resetFormForNewDay(true);
+    saveIndicator.textContent = '🧹 Formulario limpio para un nuevo día';
+    setTimeout(() => {
+      saveIndicator.textContent = '💾 Guardado automático';
+    }, 3000);
   });
 
   initForm();
